@@ -1,0 +1,33 @@
+version: "3.8"
+services:
+  php-apache-environment:
+    container_name: apache-blog
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/var/www/html/
+    ports:
+      - 1005:80
+  db:
+    container_name: blogdb
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: lionPass
+      MYSQL_DATABASE: lionDB
+      MYSQL_USER: lionUser
+      MYSQL_PASSWORD: lionPass
+    ports:
+      - "1006:3306"
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "1080:80"
+    restart: always
+    environment:
+      PMA_HOST: db
+    depends_on:
+      - db
