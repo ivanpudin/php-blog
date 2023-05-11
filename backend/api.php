@@ -17,13 +17,9 @@ if ($conn->connect_error) {
 }
 ;
 
-if ($_SERVER["REQUEST_METHOD"] == "GET" && $_GET["action"] == "posts") {
-    (new blogAPI())->getAllPosts($conn);
-}
-
 class blogAPI
 {
-    public function getAllPosts($conn)
+    public function getPosts($conn)
     {
         $sql = "
         select posts.id as post_id, posts.user as post_user, posts.post as post, comments.user as comment_user, comments.comment as comment from posts
@@ -43,6 +39,7 @@ class blogAPI
 
                     if (!isset($posts[$post_id])) {
                         $posts[$post_id] = array(
+                            "post_id" => $post_id,
                             "post_user" => $post_user,
                             "post" => $post,
                             "comments" => array(),
@@ -71,4 +68,58 @@ class blogAPI
             $response["message"] = "Error: " . $conn->error;
         }
     }
+
+    public function createComment($conn, $data)
+    {
+        $referencePostId = htmlspecialchars($data["referencePostId"]);
+        $user = htmlspecialchars($data["user"]);
+        $comment = htmlspecialchars($data["comment"]);
+        if (!mb_strlen($user) || !mb_strlen($comment)) {
+            http_response_code(400);
+            echo json_encode(array("message" => "Comment fields cannot be empty."));
+        } else {
+            $stmt = $conn->prepare("SELECT * FROM `comments` WHERE `referencePostId`=? AND `user`=? AND `comment`=?");
+            $stmt->bind_param("sss", $referencePostId, $user, $comment);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result) {
+                if ($result->num_rows != 0) {
+                    http_response_code(409);
+                    header("Content-Type: application/json");
+                    $response["message"] = "Comment already exists.";
+                    echo json_encode($response);
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO `comments` (`referencePostId`, `user`, `comment`) VALUES (?, ?, ?)");
+                    $stmt->bind_param("sss", $referencePostId, $user, $comment);
+                    if ($stmt->execute()) {
+                        http_response_code(201);
+                        header("Content-Type: application/json");
+                        $response["success"] = true;
+                        $response["message"] = "Comment has been posted";
+                        echo json_encode($response);
+                    } else {
+                        http_response_code(500);
+                        header("Content-Type: application/json");
+                        $response["success"] = false;
+                        $response["message"] = "Error: " . $stmt->error;
+                        echo json_encode($response);
+                    }
+                }
+            }
+        }
+    }
 };
+
+if ($_SERVER["REQUEST_METHOD"] == "GET" && $_GET["action"] == "posts") {
+    (new blogAPI())->getPosts($conn);
+}
+;
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && $_SERVER["CONTENT_TYPE"] == 'application/json') {
+    $content = file_get_contents("php://input");
+    $data = json_decode($content, true);
+    $action = htmlspecialchars($data["action"]);
+    if ($action == 'create-comment') {
+        (new blogAPI())->createComment($conn, $data);
+    }
+}

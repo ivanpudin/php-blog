@@ -30,3 +30,21 @@ export const getPosts = async () => {
     return await response.json()
   }
 }
+
+export const createComment = async (referencePostId: number, user: string, comment: string) => {
+  const action = 'create-comment'
+  const response = await fetch(`${URL}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ referencePostId, user, comment, action })
+  })
+
+  if (response.status === 500) {
+    throw new Error('Unable to post comment')
+  } else if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.message || 'Failed to fetch comments')
+  }
+
+  return await response.json()
+}

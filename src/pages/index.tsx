@@ -1,9 +1,10 @@
 import Image from 'next/image'
 import { Inter } from 'next/font/google'
 import { useState, useEffect } from 'react'
-import { getPosts } from './api/api'
+import { getPosts, createComment } from './api/api'
 
 interface Post {
+  post_id: number
   post_user: string
   post: string
   comments: Comment[]
@@ -18,10 +19,38 @@ const inter = Inter({ subsets: ['latin'] })
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([])
+  const [comment, setComment] = useState({
+    name: '',
+    comment: ''
+  })
+  const [message, setMessage] = useState({})
 
   useEffect(() => {
     getPosts().then(res => setPosts(Object.values(res)))
   })
+
+  const onChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setComment({
+      ...comment,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  const submitComment = async (e: React.FormEvent<HTMLFormElement>, id: number) => {
+    e.preventDefault()
+    try {
+      await createComment(
+        id,
+        comment.name,
+        comment.comment,
+      ).then(() => setComment({
+        name: '',
+        comment: ''
+    }))
+    } catch (error: any) {
+      setMessage(error.message)
+    }
+  }
 
   return (
     <main>
@@ -39,6 +68,11 @@ export default function Home() {
                 </div>
               )
             })}
+            <form onSubmit={(e) => submitComment(e, post.post_id)} className='flex flex-col justify-center items-center'>
+              <input type="text" name='name' onChange={onChangeInput} placeholder='Your name' required />
+              <input type="text" name='comment' onChange={onChangeInput}  placeholder='Your comment' required />
+              <button>Post comment</button>
+            </form>
           </div>
         )
       })}
