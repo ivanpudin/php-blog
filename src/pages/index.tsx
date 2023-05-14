@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { Inter } from 'next/font/google'
 import { useState, useEffect } from 'react'
-import { getPosts, createComment } from './api/api'
+import { getPosts, createPost, createComment } from './api/api'
 
 interface Post {
   post_id: number
@@ -19,9 +19,9 @@ const inter = Inter({ subsets: ['latin'] })
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([])
-  const [comment, setComment] = useState({
+  const [content, setContent] = useState({
     name: '',
-    comment: ''
+    content: ''
   })
   const [message, setMessage] = useState({})
   const [modal, setModal] = useState(false)
@@ -30,11 +30,30 @@ export default function Home() {
     getPosts().then(res => setPosts(Object.values(res)))
   })
 
-  const onChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setComment({
-      ...comment,
+  const onInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setContent({
+      ...content,
       [e.target.name]: e.target.value
     })
+  }
+
+  const submitPost = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    try {
+      await createPost(
+        content.name,
+        content.content,
+      ).then(() => {
+        setContent({
+          name: '',
+          content: ''
+        })
+      }).then(() => {
+        modalHandler()
+      })
+    } catch (error: any) {
+      setMessage(error.message)
+    }
   }
 
   const submitComment = async (e: React.FormEvent<HTMLFormElement>, id: number) => {
@@ -42,12 +61,12 @@ export default function Home() {
     try {
       await createComment(
         id,
-        comment.name,
-        comment.comment,
+        content.name,
+        content.content,
       ).then(() => {
-        setComment({
+        setContent({
           name: '',
-          comment: ''
+          content: ''
         })
       })
     } catch (error: any) {
@@ -67,7 +86,26 @@ export default function Home() {
           <button
           onClick={modalHandler}
           className='absolute top-1 right-1 bg-black text-white p-1.5 rounded-xl hover:opacity-50'>X</button>
-          <form></form>
+          <form
+            onSubmit={submitPost}
+            className='p-16 flex flex-col justify-center items-center'>
+              <h2 className='text-2xl'>New post</h2>
+              <input
+              type="text"
+              name='name'
+              onChange={onInput}
+              placeholder='Your name'
+              required
+              className='border-b-2 border-black m-4 outline-0 focus:scale-110' />
+              <input
+              type="text"
+              name='content'
+              onChange={onInput}
+              placeholder='Post content'
+              required
+              className='border-b-2 border-black m-4 outline-0 focus:scale-110' />
+              <button className='m-4 bg-black text-white p-1.5 rounded-xl hover:opacity-50'>Create post</button>
+            </form>
         </div>
       </div>
       }
@@ -100,18 +138,18 @@ export default function Home() {
               <input
               type="text"
               name='name'
-              onChange={onChangeInput}
+              onChange={onInput}
               placeholder='Your name'
               required
               className='border-b-2 border-black m-4 outline-0 focus:scale-110' />
               <input
               type="text"
-              name='comment'
-              onChange={onChangeInput}
+              name='content'
+              onChange={onInput}
               placeholder='Your comment'
               required
               className='border-b-2 border-black m-4 outline-0 focus:scale-110' />
-              <button className='m-4 bg-black text-white p-1.5 rounded-xl hover:opacity-50'>Post comment</button>
+              <button className='m-4 bg-black text-white p-1.5 rounded-xl hover:opacity-50'>Create comment</button>
             </form>
           </div>
         )

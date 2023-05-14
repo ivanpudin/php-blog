@@ -31,6 +31,24 @@ export const getPosts = async () => {
   }
 }
 
+export const createPost = async (user: string, post: string) => {
+  const action = 'create-post'
+  const response = await fetch(`${URL}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user, post, action })
+  })
+
+  if (response.status === 500) {
+    throw new Error('Unable to create post')
+  } else if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.message || 'Failed to fetch posts')
+  }
+
+  return await response.json()
+}
+
 export const createComment = async (referencePostId: number, user: string, comment: string) => {
   const action = 'create-comment'
   const response = await fetch(`${URL}`, {

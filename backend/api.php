@@ -69,6 +69,45 @@ class blogAPI
         }
     }
 
+    public function createPost($conn, $data)
+    {
+        $user = htmlspecialchars($data["user"]);
+        $post = htmlspecialchars($data["post"]);
+        if (!mb_strlen($user) || !mb_strlen($post)) {
+            http_response_code(400);
+            echo json_encode(array("message" => "Post fields cannot be empty."));
+        } else {
+            $stmt = $conn->prepare("SELECT * FROM `posts` WHERE `user`=? AND `post`=?");
+            $stmt->bind_param("ss", $user, $post);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result) {
+                if ($result->num_rows != 0) {
+                    http_response_code(409);
+                    header("Content-Type: application/json");
+                    $response["message"] = "Post already exists";
+                    echo json_encode($response);
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO `posts` (`user`, `post`) VALUES (?, ?)");
+                    $stmt->bind_param("ss", $user, $post);
+                    if ($stmt->execute()) {
+                        http_response_code(201);
+                        header("Content-Type: application/json");
+                        $response["success"] = true;
+                        $response["message"] = "Post has been created";
+                        echo json_encode($response);
+                    } else {
+                        http_response_code(500);
+                        header("Content-Type: application/json");
+                        $response["success"] = false;
+                        $response["message"] = "Error: " . $stmt->error;
+                        echo json_encode($response);
+                    }
+                }
+            }
+        }
+    }
+
     public function createComment($conn, $data)
     {
         $referencePostId = htmlspecialchars($data["referencePostId"]);
@@ -86,7 +125,7 @@ class blogAPI
                 if ($result->num_rows != 0) {
                     http_response_code(409);
                     header("Content-Type: application/json");
-                    $response["message"] = "Comment already exists.";
+                    $response["message"] = "Comment already exists";
                     echo json_encode($response);
                 } else {
                     $stmt = $conn->prepare("INSERT INTO `comments` (`referencePostId`, `user`, `comment`) VALUES (?, ?, ?)");
@@ -112,6 +151,16 @@ class blogAPI
 
 if ($_SERVER["REQUEST_METHOD"] == "GET" && $_GET["action"] == "posts") {
     (new blogAPI())->getPosts($conn);
+}
+;
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && $_SERVER["CONTENT_TYPE"] == 'application/json') {
+    $content = file_get_contents("php://input");
+    $data = json_decode($content, true);
+    $action = htmlspecialchars($data["action"]);
+    if ($action == 'create-post') {
+        (new blogAPI())->createPost($conn, $data);
+    }
 }
 ;
 
