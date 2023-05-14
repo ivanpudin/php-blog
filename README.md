@@ -1,3 +1,8 @@
+# Technologies used
+
+- PHP
+- TypeScript
+
 # Features
 
 Fetch posts and comments from database
