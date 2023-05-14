@@ -2,6 +2,8 @@
 
 - PHP
 - TypeScript
+- Tailwind
+- MySQL
 
 # Features
 
