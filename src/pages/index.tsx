@@ -81,7 +81,7 @@ export default function Home() {
   return (
     <main>
       {modal && 
-      <div className='absolute bottom-0 left-0 w-screen h-screen bg-black/75 flex flex-column justify-center items-center'>
+      <div className='fixed w-screen h-screen bg-black/75 flex flex-column justify-center items-center'>
         <div className='bg-white relative'>
           <button
           onClick={modalHandler}
